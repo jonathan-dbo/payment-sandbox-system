@@ -127,6 +127,7 @@ type paymentRepoStub struct {
 	byID         map[string]*paymentintent.PaymentIntent
 	failOnCreate bool
 	failOnSave   bool
+	saveFn       func(ctx context.Context, intent *paymentintent.PaymentIntent) error
 }
 
 func (s *paymentRepoStub) Create(_ context.Context, intent *paymentintent.PaymentIntent) error {
@@ -146,6 +147,9 @@ func (s *paymentRepoStub) FindByID(_ context.Context, id string) (*paymentintent
 	return &copy, nil
 }
 func (s *paymentRepoStub) Save(_ context.Context, intent *paymentintent.PaymentIntent) error {
+	if s.saveFn != nil {
+		return s.saveFn(context.Background(), intent)
+	}
 	if s.failOnSave {
 		return errForcedPaymentSave
 	}
@@ -165,6 +169,7 @@ func (s *paymentRepoStub) List(_ context.Context, _ ListFilter) ([]*paymentinten
 type invoiceRepoStub struct {
 	byID       map[string]*invoice.Invoice
 	failOnSave bool
+	saveFn     func(ctx context.Context, inv *invoice.Invoice) error
 }
 
 func (s *invoiceRepoStub) Create(_ context.Context, inv *invoice.Invoice) error {
@@ -197,6 +202,9 @@ func (s *invoiceRepoStub) FindByPaymentToken(_ context.Context, token string) (*
 	return nil, appInvoice.ErrNotFound
 }
 func (s *invoiceRepoStub) Save(_ context.Context, inv *invoice.Invoice) error {
+	if s.saveFn != nil {
+		return s.saveFn(context.Background(), inv)
+	}
 	if s.failOnSave {
 		return errForcedSave
 	}

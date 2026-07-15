@@ -114,6 +114,19 @@ func mustToken(t *testing.T, secret, sub, role string) string {
 	return signed
 }
 
+func mustExpiredToken(t *testing.T, secret, sub, role string) string {
+	t.Helper()
+	claims := jwt.MapClaims{
+		"sub":  sub,
+		"role": role,
+		"exp":  time.Now().Add(-30 * time.Minute).Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := token.SignedString([]byte(secret))
+	require.NoError(t, err)
+	return signed
+}
+
 func decodeBody(t *testing.T, rec *httptest.ResponseRecorder) map[string]string {
 	t.Helper()
 	var out map[string]string

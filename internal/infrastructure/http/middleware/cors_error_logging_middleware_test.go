@@ -75,6 +75,24 @@ func TestCORSMiddleware_NoOriginHeaderSkipsAllowOriginHeader(t *testing.T) {
 	assert.Empty(t, rec.Header().Get("Access-Control-Allow-Origin"))
 }
 
+// TestCORSMiddleware_SkipsBlankConfiguredOrigins exercises normalizeOrigins'
+// "trimmed == \"\" { continue }" branch: an all-whitespace entry in the
+// configured origins list must be dropped rather than treated as a valid
+// allowed origin.
+func TestCORSMiddleware_SkipsBlankConfiguredOrigins(t *testing.T) {
+	engine := newCORSTestRouter([]string{"   ", "https://allowed.example.com", ""})
+	req := httptest.NewRequest(http.MethodGet, "/ping", nil)
+	req.Header.Set("Origin", "   ")
+	rec := httptest.NewRecorder()
+	engine.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	// A blank Origin header is never a configured allowed origin (blank
+	// entries are filtered out by normalizeOrigins), so no allow-origin
+	// header should be set even though allowAny is false.
+	assert.Empty(t, rec.Header().Get("Access-Control-Allow-Origin"))
+}
+
 func TestCORSMiddleware_SetsStandardHeaders(t *testing.T) {
 	engine := newCORSTestRouter(nil)
 	req := httptest.NewRequest(http.MethodGet, "/ping", nil)
