@@ -1,0 +1,64 @@
+CREATE TABLE IF NOT EXISTS merchants (
+  id TEXT PRIMARY KEY,
+  user_id TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS invoices (
+  id TEXT PRIMARY KEY,
+  invoice_number TEXT UNIQUE NOT NULL,
+  merchant_id TEXT NOT NULL,
+  amount BIGINT NOT NULL,
+  currency TEXT NOT NULL,
+  status TEXT NOT NULL,
+  payment_token TEXT UNIQUE NOT NULL,
+  due_date TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL
+);
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS due_date TIMESTAMPTZ;
+
+CREATE TABLE IF NOT EXISTS payment_intents (
+  id TEXT PRIMARY KEY,
+  invoice_id TEXT NOT NULL,
+  method TEXT NOT NULL,
+  status TEXT NOT NULL,
+  due_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS refunds (
+  id TEXT PRIMARY KEY,
+  invoice_id TEXT NOT NULL,
+  merchant_id TEXT NOT NULL,
+  amount BIGINT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS wallets (
+  id TEXT PRIMARY KEY,
+  merchant_id TEXT UNIQUE NOT NULL,
+  balance BIGINT NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS top_ups (
+  id TEXT PRIMARY KEY,
+  merchant_id TEXT NOT NULL,
+  amount BIGINT NOT NULL,
+  status TEXT NOT NULL,
+  request_key TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE top_ups ADD COLUMN IF NOT EXISTS request_key TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_top_ups_merchant_request_key ON top_ups(merchant_id, request_key) WHERE request_key IS NOT NULL;

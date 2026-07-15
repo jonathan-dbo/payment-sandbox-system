@@ -1,0 +1,15 @@
+# package: handlers
+# generate:
+#   models: true
+#   strict-server: true
+#   std-http-server: true
+#   output: gen.go
+
+package: interfaces
+output: oapi_gen.go
+generate:
+  gin-server: true
+  strict-server: true
+  models: true
+
+

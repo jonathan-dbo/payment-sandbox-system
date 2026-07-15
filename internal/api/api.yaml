@@ -1,0 +1,749 @@
+openapi: 3.0.0
+info:
+  title: Payment Sandbox API
+  version: 0.1.0
+  description: Authentication APIs for merchant onboarding and login.
+tags:
+  - name: System
+    description: Health and service metadata endpoints.
+  - name: Auth
+    description: Registration, login, and token refresh endpoints.
+  - name: Invoice
+    description: Invoice management endpoints for merchant/admin.
+  - name: Payment Public
+    description: Public payment-link resolution and intent creation.
+  - name: Merchant
+    description: Merchant-protected refund, top-up, and profile endpoints.
+  - name: Admin
+    description: Admin-protected simulation and monitoring endpoints.
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://staging.api.example.com
+    description: Staging server
+  - url: https://api.example.com
+    description: Production server
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      operationId: Health
+      summary: Health check
+      tags: [System]
+      security: []
+      responses:
+        "200":
+          description: Healthy
+  /pay/{token}:
+    get:
+      operationId: ResolvePaymentLink
+      summary: Resolve public payment link
+      tags: [Payment Public]
+      security: []
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Payment link resolved
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /pay/{token}/intents:
+    post:
+      operationId: CreatePaymentIntent
+      summary: Create payment intent
+      tags: [Payment Public]
+      security: []
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePaymentIntentRequest"
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /merchant/refunds:
+    post:
+      operationId: RequestRefund
+      summary: Merchant request refund
+      tags: [Merchant]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestRefundRequest"
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      operationId: ListRefundHistory
+      summary: Refund history
+      tags: [Merchant]
+      parameters:
+        - in: query
+          name: merchantId
+          schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer }
+        - in: query
+          name: pageSize
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Paginated refund history
+  /merchant/profile:
+    get:
+      operationId: MerchantProfile
+      summary: Merchant-only profile/access check
+      tags: [Merchant]
+      responses:
+        "200":
+          description: Merchant route access granted
+  /merchant/topups:
+    post:
+      operationId: RequestTopUp
+      summary: Merchant request top-up
+      tags: [Merchant]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestTopUpRequest"
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      operationId: ListTopUpHistory
+      summary: Top-up history
+      tags: [Merchant]
+      parameters:
+        - in: query
+          name: merchantId
+          schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer }
+        - in: query
+          name: pageSize
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Paginated top-up history
+  /admin/dashboard:
+    get:
+      operationId: AdminDashboard
+      summary: Admin-only dashboard/access check
+      tags: [Admin]
+      responses:
+        "200":
+          description: Admin route access granted
+  /admin/dashboard/stats:
+    get:
+      operationId: GetDashboardStats
+      summary: Admin dashboard statistics
+      tags: [Admin]
+      parameters:
+        - in: query
+          name: merchantId
+          schema: { type: string }
+        - in: query
+          name: startDate
+          schema: { type: string, format: date-time }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date-time }
+      responses:
+        "200":
+          description: Dashboard statistics
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/payment-intents/{intentId}/simulate:
+    post:
+      operationId: SimulatePaymentIntent
+      summary: Admin simulate payment intent outcome
+      tags: [Admin]
+      parameters:
+        - in: path
+          name: intentId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SimulatePaymentIntentRequest"
+      responses:
+        "200":
+          description: Simulation applied
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/refunds/{refundId}/approve:
+    post:
+      operationId: ApproveRefund
+      summary: Admin approve refund
+      tags: [Admin]
+      parameters:
+        - in: path
+          name: refundId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Refund approved
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/refunds/{refundId}/reject:
+    post:
+      operationId: RejectRefund
+      summary: Admin reject refund
+      tags: [Admin]
+      parameters:
+        - in: path
+          name: refundId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Refund rejected
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/refunds/{refundId}/process:
+    post:
+      operationId: ProcessRefund
+      summary: Admin process refund outcome
+      tags: [Admin]
+      parameters:
+        - in: path
+          name: refundId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProcessRefundRequest"
+      responses:
+        "200":
+          description: Refund processed
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/topups/{topupId}/status:
+    post:
+      operationId: UpdateTopUpStatus
+      summary: Admin update top-up status
+      tags: [Admin]
+      parameters:
+        - in: path
+          name: topupId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTopUpStatusRequest"
+      responses:
+        "200":
+          description: Top-up updated
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /invoices:
+    post:
+      operationId: CreateInvoice
+      summary: Create invoice
+      tags: [Invoice]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvoiceRequest"
+      responses:
+        "201":
+          description: Invoice created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvoiceResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      operationId: ListInvoices
+      summary: List invoices
+      tags: [Invoice]
+      parameters:
+        - in: query
+          name: merchantId
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: string
+        - in: query
+          name: pageSize
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Invoice list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvoiceListResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /invoices/{id}:
+    get:
+      operationId: GetInvoice
+      summary: Get invoice detail
+      tags: [Invoice]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Invoice detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvoiceResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: UpdateInvoice
+      summary: Update invoice
+      tags: [Invoice]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateInvoiceRequest"
+      responses:
+        "200":
+          description: Invoice updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvoiceResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: DeleteInvoice
+      summary: Delete invoice
+      tags: [Invoice]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: Invoice deleted
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/register:
+    post:
+      operationId: Register
+      summary: Register an account
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+            example:
+              name: "Demo Merchant"
+              email: "merchant@example.com"
+              password: "secret123"
+              role: "MERCHANT"
+      responses:
+        "201":
+          description: Merchant registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+              example:
+                token: "<jwt>"
+                expiresAt: "2026-04-29T10:00:00Z"
+                userId: "uuid"
+                email: "merchant@example.com"
+                role: "MERCHANT"
+        "401":
+          description: Authentication validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Duplicate email conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/login:
+    post:
+      operationId: Login
+      summary: Login merchant account
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            example:
+              email: "merchant@example.com"
+              password: "secret123"
+      responses:
+        "200":
+          description: Login success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/refresh:
+    post:
+      operationId: Refresh
+      summary: Refresh JWT token
+      tags: [Auth]
+      responses:
+        "200":
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid auth context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    CreatePaymentIntentRequest:
+      type: object
+      required: [method]
+      properties:
+        method:
+          type: string
+          description: WALLET, VA_DUMMY, or EWALLET_DUMMY
+    RequestRefundRequest:
+      type: object
+      required: [invoiceId, merchantId, amount]
+      properties:
+        invoiceId:
+          type: string
+        merchantId:
+          type: string
+        amount:
+          type: integer
+          format: int64
+    RequestTopUpRequest:
+      type: object
+      required: [merchantId, amount]
+      properties:
+        merchantId:
+          type: string
+        amount:
+          type: integer
+          format: int64
+        requestKey:
+          type: string
+    CreateInvoiceRequest:
+      type: object
+      required: [merchantId, amount]
+      properties:
+        merchantId:
+          type: string
+        amount:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        dueDate:
+          type: string
+          format: date-time
+    UpdateInvoiceRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        dueDate:
+          type: string
+          format: date-time
+    InvoiceResponse:
+      type: object
+      required: [id, invoiceNumber, merchantId, amount, currency, status, paymentToken, createdAt]
+      properties:
+        id:
+          type: string
+        invoiceNumber:
+          type: string
+        merchantId:
+          type: string
+        amount:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        status:
+          type: string
+        paymentToken:
+          type: string
+        dueDate:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+    InvoiceListResponse:
+      type: object
+      required: [items, page, size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/InvoiceResponse"
+        page:
+          type: integer
+        size:
+          type: integer
+    RegisterRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        role:
+          type: string
+          enum: [ADMIN, USER, MERCHANT]
+          description: Optional. Defaults to MERCHANT.
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    AuthResponse:
+      type: object
+      required:
+        - token
+        - expiresAt
+        - userId
+        - email
+        - role
+      properties:
+        token:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        userId:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+    SimulatePaymentIntentRequest:
+      type: object
+      required: [outcome]
+      properties:
+        outcome:
+          type: string
+          description: SUCCESS or FAILED
+    ProcessRefundRequest:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+    UpdateTopUpStatusRequest:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Detailed error message

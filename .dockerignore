@@ -1,0 +1,10 @@
+.git
+.cursor
+.DS_Store
+coverage.out
+bin
+tmp
+*.log
+.env
+.env.*
+!.env.example
